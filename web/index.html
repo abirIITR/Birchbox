@@ -1983,108 +1983,176 @@ try {
   }
 }
 
+function combinations(arr, k) {
+  if (k === 0) return [[]];
+  if (arr.length === 0) return [];
+  const head = arr[0];
+  const tail = arr.slice(1);
+  const withHead = combinations(tail, k - 1).map(c => [head, ...c]);
+  const withoutHead = combinations(tail, k);
+  return [...withHead, ...withoutHead];
+}
+
 function solveClientSide(payload) {
   const t0 = performance.now();
-  let feasibleBoxes = [];
-
-  BASELINE_SOLUTION.boxes.forEach(b => {
-    const numItems = b.products.length;
-    if (numItems < payload.gamma_l || numItems > payload.gamma_u) return;
-
-    let val = 0, wt = 0, vol = 0;
-    b.products.forEach(pid => {
-      const p = userProducts.find(item => item.id === pid);
-      if (p) {
+  const prods = userProducts;
+  
+  // 1. Dynamically enumerate candidate boxes adhering to active slider rules
+  let candidateBoxes = [];
+  const minK = Math.max(2, payload.gamma_l);
+  const maxK = Math.min(6, payload.gamma_u);
+  
+  for (let k = minK; k <= maxK; k++) {
+    const combos = combinations(prods, k);
+    for (const combo of combos) {
+      const pids = combo.map(p => p.id);
+      
+      // Box Attribute Bounds (Value, Weight, Volume)
+      let val = 0, wt = 0, vol = 0;
+      for (const p of combo) {
         val += p.attributes.value;
         wt += p.attributes.weight;
         vol += p.attributes.volume;
       }
-    });
-
-    if (val < payload.attr_value_min || val > payload.attr_value_max) return;
-    if (wt > payload.attr_weight_max || vol > payload.attr_volume_max) return;
-
-    if (payload.enforce_conflicts) {
-      let conflict = false;
-      userConflictPairs.forEach(pair => {
-        if (b.products.includes(pair[0]) && b.products.includes(pair[1])) conflict = true;
-      });
-      if (conflict) return;
+      if (val < payload.attr_value_min || val > payload.attr_value_max) continue;
+      if (wt > payload.attr_weight_max || vol > payload.attr_volume_max) continue;
+      
+      // Mandatory Co-occurring Pairs (R_hat)
+      if (payload.enforce_pairs) {
+        let pairViolation = false;
+        for (const [p1, p2] of userCooccurPairs) {
+          if (pids.includes(p1) !== pids.includes(p2)) { pairViolation = true; break; }
+        }
+        if (pairViolation) continue;
+      }
+      
+      // Incompatible Conflict Pairs (R_bar)
+      if (payload.enforce_conflicts) {
+        let conflictViolation = false;
+        for (const [p1, p2] of userConflictPairs) {
+          if (pids.includes(p1) && pids.includes(p2)) { conflictViolation = true; break; }
+        }
+        if (conflictViolation) continue;
+      }
+      
+      // Brand Diversity limit
+      if (payload.max_brand_items && payload.max_brand_items < 4) {
+        const counts = {};
+        for (const p of combo) { counts[p.brand] = (counts[p.brand] || 0) + 1; }
+        if (Object.values(counts).some(c => c > payload.max_brand_items)) continue;
+      }
+      
+      // Category Diversity limit
+      if (payload.max_category_items && payload.max_category_items < 4) {
+        const counts = {};
+        for (const p of combo) { counts[p.category] = (counts[p.category] || 0) + 1; }
+        if (Object.values(counts).some(c => c > payload.max_category_items)) continue;
+      }
+      
+      candidateBoxes.push({ products: pids, value: val, weight: wt, volume: vol });
     }
-
-    if (payload.enforce_pairs) {
-      let missingPair = false;
-      userCooccurPairs.forEach(pair => {
-        const has1 = b.products.includes(pair[0]);
-        const has2 = b.products.includes(pair[1]);
-        if (has1 !== has2) missingPair = true;
-      });
-      if (missingPair) return;
-    }
-
-    feasibleBoxes.push(JSON.parse(JSON.stringify(b)));
-  });
-
-  if (feasibleBoxes.length > payload.tau_u) {
-    feasibleBoxes = feasibleBoxes.slice(0, payload.tau_u);
   }
 
-  if (feasibleBoxes.length < payload.tau_l) {
+  const subs = (staticData && staticData.subscribers) ? staticData.subscribers : BASELINE_DATA.subscribers;
+
+  if (candidateBoxes.length === 0) {
     return {
-      status: 'Infeasible (Tight Bounds)',
-      solve_time_seconds: Math.max(0.015, (performance.now() - t0) / 1000),
+      status: 'Infeasible (No Box Meets Bounds)',
+      solve_time_seconds: Number(((performance.now() - t0) / 1000).toFixed(3)),
       subscribers_served: 0,
-      total_subscribers: 50,
+      total_subscribers: subs.length,
       boxes_built: 0,
-      total_shortage: 50,
+      total_shortage: subs.length,
       boxes: []
     };
   }
 
-  let served = 0;
-  feasibleBoxes.forEach(b => b.subscribers = []);
-
-  BASELINE_DATA.subscribers.forEach(sub => {
-    const rules = userSubscriberRules[sub.id] || { must_receive: [], cannot_receive: [] };
-    let assigned = false;
-
-    for (let b of feasibleBoxes) {
-      if (payload.enforce_preferences && rules.cannot_receive.some(pid => b.products.includes(pid))) {
-        continue;
+  // 2. Compute compatibility between subscribers and candidate box configurations
+  const subCompat = subs.map(s => {
+    const rules = userSubscriberRules[s.id] || { must_receive: [], cannot_receive: [] };
+    return candidateBoxes.map(b => {
+      if (payload.enforce_preferences) {
+        if (rules.cannot_receive.some(pid => b.products.includes(pid))) return false;
+        if (rules.must_receive.length > 0 && !rules.must_receive.some(pid => b.products.includes(pid))) return false;
       }
-      if (payload.enforce_preferences && rules.must_receive.length > 0) {
-        const hasPref = rules.must_receive.some(pid => b.products.includes(pid));
-        if (!hasPref) continue;
-      }
+      return true;
+    });
+  });
 
-      b.subscribers.push(sub.id);
-      assigned = true;
-      served++;
-      break;
+  // 3. Set-Cover optimization: iteratively select best box recipes up to tau_u
+  const selectedIndices = [];
+  const coveredSubs = new Set();
+  
+  while (selectedIndices.length < payload.tau_u && coveredSubs.size < subs.length) {
+    let bestBoxIdx = -1;
+    let maxNewCovered = -1;
+    
+    for (let bIdx = 0; bIdx < candidateBoxes.length; bIdx++) {
+      if (selectedIndices.includes(bIdx)) continue;
+      let newCovered = 0;
+      for (let sIdx = 0; sIdx < subs.length; sIdx++) {
+        if (!coveredSubs.has(sIdx) && subCompat[sIdx][bIdx]) newCovered++;
+      }
+      if (newCovered > maxNewCovered) {
+        maxNewCovered = newCovered;
+        bestBoxIdx = bIdx;
+      }
     }
+    
+    if (bestBoxIdx === -1 || maxNewCovered <= 0) break;
+    selectedIndices.push(bestBoxIdx);
+    for (let sIdx = 0; sIdx < subs.length; sIdx++) {
+      if (subCompat[sIdx][bestBoxIdx]) coveredSubs.add(sIdx);
+    }
+  }
 
-    if (!assigned && feasibleBoxes.length > 0) {
-      if (!payload.enforce_preferences) {
-        feasibleBoxes[0].subscribers.push(sub.id);
-        served++;
+  // Ensure minimum recipes tau_l
+  for (let bIdx = 0; bIdx < candidateBoxes.length && selectedIndices.length < payload.tau_l; bIdx++) {
+    if (!selectedIndices.includes(bIdx)) selectedIndices.push(bIdx);
+  }
+
+  // 4. Construct final boxes and assign subscribers
+  const finalBoxes = selectedIndices.map((bIdx, i) => {
+    const raw = candidateBoxes[bIdx];
+    return {
+      box_id: 'Box_' + String(i + 1).padStart(2, '0'),
+      products: raw.products,
+      attributes: { value: raw.value, weight: raw.weight, volume: raw.volume },
+      subscribers: [],
+      size_nb: 0,
+      pct_subscribers: 0
+    };
+  });
+
+  let assignedCount = 0;
+  subs.forEach((s, sIdx) => {
+    for (let i = 0; i < selectedIndices.length; i++) {
+      const bIdx = selectedIndices[i];
+      if (subCompat[sIdx][bIdx]) {
+        finalBoxes[i].subscribers.push(s.id);
+        assignedCount++;
+        break;
       }
     }
   });
 
-  feasibleBoxes.forEach(b => {
+  finalBoxes.forEach(b => {
     b.size_nb = b.subscribers.length;
-    b.pct_subscribers = Number(((b.size_nb / 50) * 100).toFixed(1));
+    b.pct_subscribers = Number(((b.size_nb / subs.length) * 100).toFixed(1));
   });
 
   const t1 = performance.now();
+  const coveragePct = (assignedCount / subs.length) * 100;
+  const isOptimal = (coveragePct >= payload.min_coverage_pct) && (finalBoxes.length >= payload.tau_l);
+
   return {
-    status: served >= (50 * (payload.min_coverage_pct / 100)) ? 'Optimal' : 'Infeasible (Coverage)',
-    solve_time_seconds: Math.max(0.015, (t1 - t0) / 1000),
-    subscribers_served: served,
-    total_subscribers: 50,
-    boxes_built: feasibleBoxes.length,
-    total_shortage: 50 - served,
-    boxes: feasibleBoxes
+    status: isOptimal ? 'Optimal' : (finalBoxes.length < payload.tau_l ? 'Infeasible (Recipes < tau_l)' : 'Infeasible (Coverage Target Unmet)'),
+    solve_time_seconds: Number(Math.max(0.012, (t1 - t0) / 1000).toFixed(3)),
+    subscribers_served: assignedCount,
+    total_subscribers: subs.length,
+    boxes_built: finalBoxes.length,
+    total_shortage: subs.length - assignedCount,
+    boxes: finalBoxes
   };
 }
 
