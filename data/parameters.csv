@@ -1,0 +1,8 @@
+parameter,value,description
+tau_l,2,Minimum box configurations to build (tau_l)
+tau_u,5,Maximum box configurations to build (tau_u)
+sigma_l,2,Minimum subscribers assigned per box configuration (sigma_l)
+sigma_u,50,Maximum subscribers assigned per box configuration (sigma_u)
+gamma_l,3,Minimum products per box (gamma_l)
+gamma_u,4,Maximum products per box (gamma_u)
+big_m,100,Big-M constant for linearization

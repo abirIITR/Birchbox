@@ -1,0 +1,11 @@
+product_id,product_name,category,brand,phi_l,phi_u,value,weight,volume
+P01,Ultra Facial Cream,Moisturizer,Kiehl's,6,31,12.0,30.0,20.0
+P02,Midnight Recovery Concentrate,Serum,Kiehl's,6,31,18.0,15.0,15.0
+P03,Gold Lust Repair Shampoo,Shampoo,Oribe,6,31,14.0,60.0,50.0
+P04,Gold Lust Repair Conditioner,Conditioner,Oribe,6,31,15.0,60.0,50.0
+P05,Good Genes Lactic Acid Treatment,Exfoliant,Sunday Riley,6,31,22.0,25.0,15.0
+P06,Luna Sleeping Night Oil,Serum,Sunday Riley,6,31,20.0,20.0,15.0
+P07,Don't Despair Repair Mask,Conditioner,Briogeo,6,31,11.0,50.0,40.0
+P08,Scalp Revival Charcoal Shampoo,Shampoo,Briogeo,6,31,12.0,55.0,45.0
+P09,Boy Brow Grooming Pomade,Mascara,Glossier,6,31,16.0,10.0,5.0
+P10,Cloud Paint Gel Cream Blush,Lipstick,Glossier,6,31,14.0,15.0,10.0

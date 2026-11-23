@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birchbox Assortment Allocations (Original MIP Formulation)</title>
+<style>
+  :root {
+    --bg: #F8FAFC;
+    --card-bg: #FFFFFF;
+    --text-primary: #0F172A;
+    --text-muted: #64748B;
+    --border: #E2E8F0;
+    --brand-primary: #2563EB;
+    --brand-dark: #1E293B;
+    --accent-blue: #3B82F6;
+    --accent-green: #059669;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  body { background: var(--bg); color: var(--text-primary); line-height: 1.5; padding: 24px; }
+  .container { max-width: 1250px; margin: 0 auto; }
+  
+  header {
+    background: linear-gradient(135deg, #1E293B, #0F172A);
+    color: white;
+    padding: 30px 34px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+  }
+  .badge {
+    background: var(--brand-primary);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+  h1 { font-size: 25px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+  p.subtitle { color: #94A3B8; font-size: 14px; max-width: 800px; }
+
+  .metric-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .metric-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+  .metric-label { font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; }
+  .metric-val { font-size: 26px; font-weight: 800; color: var(--text-primary); margin-top: 4px; }
+  .metric-sub { font-size: 12px; color: var(--accent-green); font-weight: 600; margin-top: 2px; }
+
+  .box-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+  .box-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .box-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08);
+  }
+  .box-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #F1F5F9;
+    padding-bottom: 12px;
+  }
+  .box-id { font-size: 18px; font-weight: 800; color: var(--text-primary); }
+  .box-badge {
+    background: #DBEAFE;
+    color: #1E40AF;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 8px;
+  }
+  .product-list { list-style: none; margin-bottom: 16px; }
+  .product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #F8FAFC;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .prod-name { font-weight: 600; color: #1E293B; }
+  .prod-brand { font-size: 11px; color: var(--text-muted); }
+  .prod-meta { font-size: 11px; font-weight: 700; color: var(--brand-primary); }
+
+  .attr-summary {
+    background: #F1F5F9;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .subs-section { margin-top: 8px; }
+  .subs-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.05em; }
+  .subs-pills { display: flex; flex-wrap: wrap; gap: 4px; max-height: 85px; overflow-y: auto; }
+  .sub-pill {
+    background: #E2E8F0;
+    color: #334155;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="badge">Original MIP Model (Equations 1–23)</div>
+    <h1>Birchbox Assortment Allocation Dashboard</h1>
+    <p class="subtitle">Complete allocation breakdown for 10 products across 50 customers generated directly by the Original Mixed-Integer Programming Formulation.</p>
+  </header>
+
+  <div class="metric-strip">
+    <div class="metric-card">
+      <div class="metric-label">Total Customers</div>
+      <div class="metric-val">50</div>
+      <div class="metric-sub">100% Assigned</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Products in Catalog</div>
+      <div class="metric-val">10 Items</div>
+      <div class="metric-sub">4 Items per Box Recipe</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Boxes Built</div>
+      <div class="metric-val">5 Recipes</div>
+      <div class="metric-sub">Active Production Lines</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Solve Time</div>
+      <div class="metric-val">0.186 s</div>
+      <div class="metric-sub">Optimal Solution Found</div>
+    </div>
+  </div>
+
+  <div id="boxes-container" class="box-grid"></div>
+</div>
+
+<script>
+const data = {"summary": {"num_products": 10, "num_subscribers": 50, "orig_time": 0.186, "orig_boxes": 5}, "boxes": [{"id": "Box_01", "size": 24, "pct": 48.0, "products": [{"id": "P05", "name": "Good Genes Lactic Acid Treatment", "brand": "Sunday Riley", "category": "Exfoliant", "value": 22.0, "weight": 25.0, "volume": 15.0}, {"id": "P07", "name": "Don't Despair Repair Mask", "brand": "Briogeo", "category": "Conditioner", "value": 11.0, "weight": 50.0, "volume": 40.0}, {"id": "P08", "name": "Scalp Revival Charcoal Shampoo", "brand": "Briogeo", "category": "Shampoo", "value": 12.0, "weight": 55.0, "volume": 45.0}, {"id": "P09", "name": "Boy Brow Grooming Pomade", "brand": "Glossier", "category": "Mascara", "value": 16.0, "weight": 10.0, "volume": 5.0}], "subscribers": ["S09", "S10", "S11", "S12", "S16", "S20", "S23", "S24", "S26", "S28", "S30", "S31", "S32", "S36", "S37", "S38", "S39", "S40", "S42", "S43", "S46", "S47", "S48", "S49"], "attributes": {"value": 61.0, "weight": 140.0, "volume": 105.0}}, {"id": "Box_02", "size": 6, "pct": 12.0, "products": [{"id": "P01", "name": "Ultra Facial Cream", "brand": "Kiehl's", "category": "Moisturizer", "value": 12.0, "weight": 30.0, "volume": 20.0}, {"id": "P02", "name": "Midnight Recovery Concentrate", "brand": "Kiehl's", "category": "Serum", "value": 18.0, "weight": 15.0, "volume": 15.0}, {"id": "P06", "name": "Luna Sleeping Night Oil", "brand": "Sunday Riley", "category": "Serum", "value": 20.0, "weight": 20.0, "volume": 15.0}, {"id": "P10", "name": "Cloud Paint Gel Cream Blush", "brand": "Glossier", "category": "Lipstick", "value": 14.0, "weight": 15.0, "volume": 10.0}], "subscribers": ["S02", "S03", "S04", "S15", "S22", "S41"], "attributes": {"value": 64.0, "weight": 80.0, "volume": 60.0}}, {"id": "Box_03", "size": 7, "pct": 14.0, "products": [{"id": "P01", "name": "Ultra Facial Cream", "brand": "Kiehl's", "category": "Moisturizer", "value": 12.0, "weight": 30.0, "volume": 20.0}, {"id": "P03", "name": "Gold Lust Repair Shampoo", "brand": "Oribe", "category": "Shampoo", "value": 14.0, "weight": 60.0, "volume": 50.0}, {"id": "P04", "name": "Gold Lust Repair Conditioner", "brand": "Oribe", "category": "Conditioner", "value": 15.0, "weight": 60.0, "volume": 50.0}, {"id": "P09", "name": "Boy Brow Grooming Pomade", "brand": "Glossier", "category": "Mascara", "value": 16.0, "weight": 10.0, "volume": 5.0}], "subscribers": ["S05", "S07", "S13", "S19", "S21", "S35", "S45"], "attributes": {"value": 57.0, "weight": 160.0, "volume": 125.0}}, {"id": "Box_04", "size": 3, "pct": 6.0, "products": [{"id": "P01", "name": "Ultra Facial Cream", "brand": "Kiehl's", "category": "Moisturizer", "value": 12.0, "weight": 30.0, "volume": 20.0}, {"id": "P07", "name": "Don't Despair Repair Mask", "brand": "Briogeo", "category": "Conditioner", "value": 11.0, "weight": 50.0, "volume": 40.0}, {"id": "P08", "name": "Scalp Revival Charcoal Shampoo", "brand": "Briogeo", "category": "Shampoo", "value": 12.0, "weight": 55.0, "volume": 45.0}, {"id": "P10", "name": "Cloud Paint Gel Cream Blush", "brand": "Glossier", "category": "Lipstick", "value": 14.0, "weight": 15.0, "volume": 10.0}], "subscribers": ["S01", "S08", "S17"], "attributes": {"value": 49.0, "weight": 150.0, "volume": 115.0}}, {"id": "Box_05", "size": 10, "pct": 20.0, "products": [{"id": "P03", "name": "Gold Lust Repair Shampoo", "brand": "Oribe", "category": "Shampoo", "value": 14.0, "weight": 60.0, "volume": 50.0}, {"id": "P04", "name": "Gold Lust Repair Conditioner", "brand": "Oribe", "category": "Conditioner", "value": 15.0, "weight": 60.0, "volume": 50.0}, {"id": "P06", "name": "Luna Sleeping Night Oil", "brand": "Sunday Riley", "category": "Serum", "value": 20.0, "weight": 20.0, "volume": 15.0}, {"id": "P10", "name": "Cloud Paint Gel Cream Blush", "brand": "Glossier", "category": "Lipstick", "value": 14.0, "weight": 15.0, "volume": 10.0}], "subscribers": ["S06", "S14", "S18", "S25", "S27", "S29", "S33", "S34", "S44", "S50"], "attributes": {"value": 63.0, "weight": 155.0, "volume": 125.0}}]};
+
+function renderBoxes() {
+  const container = document.getElementById('boxes-container');
+  container.innerHTML = '';
+
+  data.boxes.forEach(box => {
+    const card = document.createElement('div');
+    card.className = 'box-card';
+
+    let prodsHtml = '';
+    box.products.forEach(p => {
+      prodsHtml += `
+        <li class="product-item">
+          <div>
+            <div class="prod-name">${p.name}</div>
+            <div class="prod-brand">${p.brand} • ${p.category}</div>
+          </div>
+          <div class="prod-meta">$$${p.value.toFixed(1)}</div>
+        </li>
+      `;
+    });
+
+    let subsHtml = '';
+    box.subscribers.forEach(s => {
+      subsHtml += `<span class="sub-pill">${s}</span>`;
+    });
+
+    card.innerHTML = `
+      <div>
+        <div class="box-card-header">
+          <div>
+            <div class="box-id">${box.id}</div>
+            <div style="font-size: 12px; color: #64748B; font-weight: 600;">Production Line</div>
+          </div>
+          <div class="box-badge">${box.size} Subscribers (${box.pct}%)</div>
+        </div>
+
+        <ul class="product-list">
+          ${prodsHtml}
+        </ul>
+
+        <div class="attr-summary">
+          <span>Value: $$${box.attributes.value.toFixed(1)}</span>
+          <span>Weight: ${box.attributes.weight.toFixed(0)}g</span>
+          <span>Vol: ${box.attributes.volume.toFixed(0)}ml</span>
+        </div>
+      </div>
+
+      <div class="subs-section">
+        <div class="subs-title">Assigned Customer Clusters (${box.subscribers.length})</div>
+        <div class="subs-pills">
+          ${subsHtml}
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+renderBoxes();
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+subscriber_id,product_id,requirement_type,category,notes
+S01,P01,MUST_RECEIVE,Moisturizer,Pre-selected hero item in Moisturizer
+S02,P02,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S02,P06,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S03,P05,CANNOT_RECEIVE,Exfoliant,Profile exclusion for Exfoliant
+S03,P02,MUST_RECEIVE,Serum,Pre-selected hero item in Serum
+S05,P03,CANNOT_RECEIVE,Shampoo,Profile exclusion for Shampoo
+S05,P08,CANNOT_RECEIVE,Shampoo,Profile exclusion for Shampoo
+S05,P10,MUST_RECEIVE,Lipstick,Pre-selected hero item in Lipstick
+S06,P10,CANNOT_RECEIVE,Lipstick,Profile exclusion for Lipstick
+S06,P08,MUST_RECEIVE,Shampoo,Pre-selected hero item in Shampoo
+S07,P02,MUST_RECEIVE,Serum,Pre-selected hero item in Serum
+S08,P05,CANNOT_RECEIVE,Exfoliant,Profile exclusion for Exfoliant
+S09,P02,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S09,P06,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S09,P01,MUST_RECEIVE,Moisturizer,Pre-selected hero item in Moisturizer
+S11,P10,CANNOT_RECEIVE,Lipstick,Profile exclusion for Lipstick
+S11,P02,MUST_RECEIVE,Serum,Pre-selected hero item in Serum
+S12,P04,CANNOT_RECEIVE,Conditioner,Profile exclusion for Conditioner
+S12,P07,CANNOT_RECEIVE,Conditioner,Profile exclusion for Conditioner
+S13,P04,MUST_RECEIVE,Conditioner,Pre-selected hero item in Conditioner
+S14,P02,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S14,P06,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S15,P05,CANNOT_RECEIVE,Exfoliant,Profile exclusion for Exfoliant
+S15,P01,MUST_RECEIVE,Moisturizer,Pre-selected hero item in Moisturizer
+S16,P06,MUST_RECEIVE,Serum,Pre-selected hero item in Serum
+S17,P02,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S17,P06,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S17,P09,MUST_RECEIVE,Mascara,Pre-selected hero item in Mascara
+S18,P04,CANNOT_RECEIVE,Conditioner,Profile exclusion for Conditioner
+S18,P07,CANNOT_RECEIVE,Conditioner,Profile exclusion for Conditioner
+S19,P10,MUST_RECEIVE,Lipstick,Pre-selected hero item in Lipstick
+S20,P05,CANNOT_RECEIVE,Exfoliant,Profile exclusion for Exfoliant
+S21,P05,CANNOT_RECEIVE,Exfoliant,Profile exclusion for Exfoliant
+S21,P01,MUST_RECEIVE,Moisturizer,Pre-selected hero item in Moisturizer
+S23,P02,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S23,P06,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S23,P09,MUST_RECEIVE,Mascara,Pre-selected hero item in Mascara
+S24,P10,CANNOT_RECEIVE,Lipstick,Profile exclusion for Lipstick
+S25,P10,MUST_RECEIVE,Lipstick,Pre-selected hero item in Lipstick
+S26,P05,CANNOT_RECEIVE,Exfoliant,Profile exclusion for Exfoliant
+S26,P01,MUST_RECEIVE,Moisturizer,Pre-selected hero item in Moisturizer
+S27,P02,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S27,P06,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S27,P03,MUST_RECEIVE,Shampoo,Pre-selected hero item in Shampoo
+S29,P10,CANNOT_RECEIVE,Lipstick,Profile exclusion for Lipstick
+S29,P01,MUST_RECEIVE,Moisturizer,Pre-selected hero item in Moisturizer
+S30,P03,CANNOT_RECEIVE,Shampoo,Profile exclusion for Shampoo
+S30,P08,CANNOT_RECEIVE,Shampoo,Profile exclusion for Shampoo
+S31,P03,MUST_RECEIVE,Shampoo,Pre-selected hero item in Shampoo
+S32,P04,CANNOT_RECEIVE,Conditioner,Profile exclusion for Conditioner
+S32,P07,CANNOT_RECEIVE,Conditioner,Profile exclusion for Conditioner
+S33,P05,CANNOT_RECEIVE,Exfoliant,Profile exclusion for Exfoliant
+S33,P01,MUST_RECEIVE,Moisturizer,Pre-selected hero item in Moisturizer
+S35,P05,CANNOT_RECEIVE,Exfoliant,Profile exclusion for Exfoliant
+S35,P04,MUST_RECEIVE,Conditioner,Pre-selected hero item in Conditioner
+S36,P10,CANNOT_RECEIVE,Lipstick,Profile exclusion for Lipstick
+S36,P06,MUST_RECEIVE,Serum,Pre-selected hero item in Serum
+S37,P05,MUST_RECEIVE,Exfoliant,Pre-selected hero item in Exfoliant
+S38,P05,CANNOT_RECEIVE,Exfoliant,Profile exclusion for Exfoliant
+S39,P02,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S39,P06,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S39,P01,MUST_RECEIVE,Moisturizer,Pre-selected hero item in Moisturizer
+S41,P10,CANNOT_RECEIVE,Lipstick,Profile exclusion for Lipstick
+S41,P02,MUST_RECEIVE,Serum,Pre-selected hero item in Serum
+S42,P02,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S42,P06,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S43,P05,MUST_RECEIVE,Exfoliant,Pre-selected hero item in Exfoliant
+S44,P03,CANNOT_RECEIVE,Shampoo,Profile exclusion for Shampoo
+S44,P08,CANNOT_RECEIVE,Shampoo,Profile exclusion for Shampoo
+S45,P05,CANNOT_RECEIVE,Exfoliant,Profile exclusion for Exfoliant
+S45,P03,MUST_RECEIVE,Shampoo,Pre-selected hero item in Shampoo
+S46,P01,MUST_RECEIVE,Moisturizer,Pre-selected hero item in Moisturizer
+S47,P05,CANNOT_RECEIVE,Exfoliant,Profile exclusion for Exfoliant
+S47,P02,MUST_RECEIVE,Serum,Pre-selected hero item in Serum
+S48,P02,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S48,P06,CANNOT_RECEIVE,Serum,Profile exclusion for Serum
+S49,P04,MUST_RECEIVE,Conditioner,Pre-selected hero item in Conditioner
+S50,P03,CANNOT_RECEIVE,Shampoo,Profile exclusion for Shampoo
+S50,P08,CANNOT_RECEIVE,Shampoo,Profile exclusion for Shampoo

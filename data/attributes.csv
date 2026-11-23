@@ -1,0 +1,4 @@
+attribute,min_amount,max_amount,unit,description
+value,35.0,85.0,USD,Total estimated retail sample value
+weight,60.0,220.0,grams,Total box shipping weight
+volume,40.0,160.0,ml,Total liquid/cream fluid volume
