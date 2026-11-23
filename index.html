@@ -2117,6 +2117,7 @@ function solveClientSide(payload) {
     return {
       box_id: 'Box_' + String(i + 1).padStart(2, '0'),
       products: raw.products,
+      attribute_totals: { value: raw.value, weight: raw.weight, volume: raw.volume },
       attributes: { value: raw.value, weight: raw.weight, volume: raw.volume },
       subscribers: [],
       size_nb: 0,
@@ -2221,7 +2222,9 @@ function renderUnboxing(boxes) {
       subsHtml += `<span class="sub-pill">${sid}</span>`;
     });
 
-    const pct = ((box.size_nb / staticData.subscribers.length) * 100).toFixed(0);
+    const totalSubCount = (staticData && staticData.subscribers) ? staticData.subscribers.length : 50;
+    const pct = ((box.size_nb / totalSubCount) * 100).toFixed(0);
+    const attrTotals = box.attribute_totals || box.attributes || { value: 0, weight: 0, volume: 0 };
 
     card.innerHTML = `
       <div>
@@ -2231,9 +2234,9 @@ function renderUnboxing(boxes) {
         </div>
         <div style="margin-bottom: 12px;">${prodsHtml}</div>
         <div class="attr-bar">
-          <span>Value: $${box.attribute_totals.value.toFixed(1)}</span>
-          <span>Weight: ${box.attribute_totals.weight.toFixed(0)}g</span>
-          <span>Vol: ${box.attribute_totals.volume.toFixed(0)}ml</span>
+          <span>Value: $${(attrTotals.value || 0).toFixed(1)}</span>
+          <span>Weight: ${(attrTotals.weight || 0).toFixed(0)}g</span>
+          <span>Vol: ${(attrTotals.volume || 0).toFixed(0)}ml</span>
         </div>
       </div>
       <div>
