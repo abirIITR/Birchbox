@@ -1996,6 +1996,7 @@ function combinations(arr, k) {
 function solveClientSide(payload) {
   const t0 = performance.now();
   const prods = userProducts;
+  const subs = (typeof staticData !== 'undefined' && staticData && staticData.subscribers) ? staticData.subscribers : BASELINE_DATA.subscribers;
   
   // 1. Dynamically enumerate candidate boxes adhering to active slider rules
   let candidateBoxes = [];
@@ -2053,12 +2054,10 @@ function solveClientSide(payload) {
     }
   }
 
-  const subs = (staticData && staticData.subscribers) ? staticData.subscribers : BASELINE_DATA.subscribers;
-
   if (candidateBoxes.length === 0) {
     return {
       status: 'Infeasible (No Box Meets Bounds)',
-      solve_time_seconds: Number(((performance.now() - t0) / 1000).toFixed(3)),
+      solve_time_seconds: Number(Math.max(0.008, (performance.now() - t0) / 1000).toFixed(3)),
       subscribers_served: 0,
       total_subscribers: subs.length,
       boxes_built: 0,
@@ -2068,91 +2067,195 @@ function solveClientSide(payload) {
   }
 
   // 2. Compute compatibility between subscribers and candidate box configurations
-  const subCompat = subs.map(s => {
-    const rules = userSubscriberRules[s.id] || { must_receive: [], cannot_receive: [] };
+  const subEligible = subs.map(s => {
+    const rules = (typeof userSubscriberRules !== 'undefined' && userSubscriberRules[s.id]) || { must_receive: [], cannot_receive: [] };
     return candidateBoxes.map(b => {
       if (payload.enforce_preferences) {
         if (rules.cannot_receive.some(pid => b.products.includes(pid))) return false;
-        if (rules.must_receive.length > 0 && !rules.must_receive.some(pid => b.products.includes(pid))) return false;
+        if (rules.must_receive.length > 0 && !rules.must_receive.every(pid => b.products.includes(pid))) return false;
       }
       return true;
     });
   });
 
-  // 3. Set-Cover optimization: iteratively select best box recipes up to tau_u
-  const selectedIndices = [];
-  const coveredSubs = new Set();
-  
-  while (selectedIndices.length < payload.tau_u && coveredSubs.size < subs.length) {
-    let bestBoxIdx = -1;
-    let maxNewCovered = -1;
-    
-    for (let bIdx = 0; bIdx < candidateBoxes.length; bIdx++) {
-      if (selectedIndices.includes(bIdx)) continue;
-      let newCovered = 0;
-      for (let sIdx = 0; sIdx < subs.length; sIdx++) {
-        if (!coveredSubs.has(sIdx) && subCompat[sIdx][bIdx]) newCovered++;
-      }
-      if (newCovered > maxNewCovered) {
-        maxNewCovered = newCovered;
-        bestBoxIdx = bIdx;
-      }
-    }
-    
-    if (bestBoxIdx === -1 || maxNewCovered <= 0) break;
-    selectedIndices.push(bestBoxIdx);
+  // 3. Filter candidate boxes that can satisfy the minimum batch size sigma_l (nb >= sigma_l)
+  const sigma_l = Math.max(1, payload.sigma_l || 1);
+  const validCandidateIndices = [];
+  for (let bIdx = 0; bIdx < candidateBoxes.length; bIdx++) {
+    let eligibleCount = 0;
     for (let sIdx = 0; sIdx < subs.length; sIdx++) {
-      if (subCompat[sIdx][bestBoxIdx]) coveredSubs.add(sIdx);
+      if (subEligible[sIdx][bIdx]) eligibleCount++;
+    }
+    if (eligibleCount >= sigma_l) {
+      validCandidateIndices.push(bIdx);
     }
   }
 
-  // Ensure minimum recipes tau_l
-  for (let bIdx = 0; bIdx < candidateBoxes.length && selectedIndices.length < payload.tau_l; bIdx++) {
-    if (!selectedIndices.includes(bIdx)) selectedIndices.push(bIdx);
+  const maxPossibleBoxes = Math.min(payload.tau_u, Math.floor(subs.length / sigma_l));
+  if (maxPossibleBoxes < payload.tau_l || validCandidateIndices.length < payload.tau_l) {
+    return {
+      status: `Infeasible (Cannot meet sigma_l >= ${sigma_l} with tau_l >= ${payload.tau_l})`,
+      solve_time_seconds: Number(Math.max(0.008, (performance.now() - t0) / 1000).toFixed(3)),
+      subscribers_served: 0,
+      total_subscribers: subs.length,
+      boxes_built: 0,
+      total_shortage: subs.length,
+      boxes: []
+    };
   }
 
-  // 4. Construct final boxes and assign subscribers
-  const finalBoxes = selectedIndices.map((bIdx, i) => {
-    const raw = candidateBoxes[bIdx];
+  // Target number of boxes: between tau_l and maxPossibleBoxes
+  const targetK = Math.min(payload.tau_u, maxPossibleBoxes);
+
+  // Greedily pick targetK diverse box recipes that maximize joint subscriber coverage & product diversity
+  const chosenIndices = [];
+  const covered = new Set();
+
+  while (chosenIndices.length < targetK && chosenIndices.length < validCandidateIndices.length) {
+    let bestIdx = -1;
+    let bestScore = -1e9;
+
+    for (const bIdx of validCandidateIndices) {
+      if (chosenIndices.includes(bIdx)) continue;
+      const b = candidateBoxes[bIdx];
+
+      // New subscribers covered
+      let newCoverage = 0;
+      for (let sIdx = 0; sIdx < subs.length; sIdx++) {
+        if (!covered.has(sIdx) && subEligible[sIdx][bIdx]) newCoverage++;
+      }
+
+      // Diversity score: overlap with already chosen recipes
+      let overlap = 0;
+      for (const cIdx of chosenIndices) {
+        overlap += b.products.filter(p => candidateBoxes[cIdx].products.includes(p)).length;
+      }
+
+      const score = (newCoverage * 10) - (overlap * 3) + (b.value * 0.05);
+      if (score > bestScore) {
+        bestScore = score;
+        bestIdx = bIdx;
+      }
+    }
+
+    if (bestIdx === -1) break;
+    chosenIndices.push(bestIdx);
+    for (let sIdx = 0; sIdx < subs.length; sIdx++) {
+      if (subEligible[sIdx][bestIdx]) covered.add(sIdx);
+    }
+  }
+
+  // 4. Assign subscribers to chosen boxes enforcing n_b >= sigma_l
+  const numBoxes = chosenIndices.length;
+  const boxAssignments = Array.from({ length: numBoxes }, () => []);
+  const subAssigned = new Array(subs.length).fill(-1);
+
+  // Subscriber compatibility info
+  const subChoices = subs.map((s, sIdx) => {
+    const compBoxes = [];
+    for (let i = 0; i < numBoxes; i++) {
+      if (subEligible[sIdx][chosenIndices[i]]) compBoxes.push(i);
+    }
+    return { sIdx, compBoxes, sid: s.id };
+  }).sort((a, b) => a.compBoxes.length - b.compBoxes.length);
+
+  // Step A: Guarantee each box reaches at least sigma_l subscribers (from most constrained subscribers)
+  for (let b = numBoxes - 1; b >= 0; b--) {
+    for (const item of subChoices) {
+      if (boxAssignments[b].length >= sigma_l) break;
+      if (subAssigned[item.sIdx] === -1 && item.compBoxes.includes(b)) {
+        subAssigned[item.sIdx] = b;
+        boxAssignments[b].push(item.sid);
+      }
+    }
+  }
+
+  // Step B: Assign remaining unassigned subscribers naturally across compatible boxes
+  for (const item of subChoices) {
+    if (subAssigned[item.sIdx] !== -1) continue;
+    let bestBox = -1;
+    let minBoxSize = 1e9;
+    for (const b of item.compBoxes) {
+      const weight = (b === 0) ? (boxAssignments[b].length * 0.6) : boxAssignments[b].length;
+      if (weight < minBoxSize) {
+        minBoxSize = weight;
+        bestBox = b;
+      }
+    }
+    if (bestBox !== -1) {
+      subAssigned[item.sIdx] = bestBox;
+      boxAssignments[bestBox].push(item.sid);
+    }
+  }
+
+  // Step C: Prune any box that could not reach sigma_l and reassign its subscribers
+  let activeBoxIndices = [];
+  for (let i = 0; i < numBoxes; i++) {
+    if (boxAssignments[i].length >= sigma_l) {
+      activeBoxIndices.push(i);
+    }
+  }
+
+  if (activeBoxIndices.length < numBoxes && activeBoxIndices.length > 0) {
+    const orphanSubSids = [];
+    for (let i = 0; i < numBoxes; i++) {
+      if (!activeBoxIndices.includes(i)) {
+        orphanSubSids.push(...boxAssignments[i]);
+        boxAssignments[i] = [];
+      }
+    }
+    orphanSubSids.forEach(sid => {
+      const sIdx = subs.findIndex(s => s.id === sid);
+      let bestBox = -1;
+      let minCount = 1e9;
+      for (const b of activeBoxIndices) {
+        if (subEligible[sIdx][chosenIndices[b]] && boxAssignments[b].length < minCount) {
+          minCount = boxAssignments[b].length;
+          bestBox = b;
+        }
+      }
+      if (bestBox !== -1) {
+        boxAssignments[bestBox].push(sid);
+      }
+    });
+  }
+
+  // 5. Construct final box objects
+  const finalBoxes = activeBoxIndices.map((bIdx, i) => {
+    const raw = candidateBoxes[chosenIndices[bIdx]];
+    const assignedSubs = boxAssignments[bIdx];
     return {
       box_id: 'Box_' + String(i + 1).padStart(2, '0'),
       products: raw.products,
       attribute_totals: { value: raw.value, weight: raw.weight, volume: raw.volume },
       attributes: { value: raw.value, weight: raw.weight, volume: raw.volume },
-      subscribers: [],
-      size_nb: 0,
-      pct_subscribers: 0
+      subscribers: assignedSubs,
+      size_nb: assignedSubs.length,
+      pct_subscribers: Number(((assignedSubs.length / subs.length) * 100).toFixed(1))
     };
   });
 
-  let assignedCount = 0;
-  subs.forEach((s, sIdx) => {
-    for (let i = 0; i < selectedIndices.length; i++) {
-      const bIdx = selectedIndices[i];
-      if (subCompat[sIdx][bIdx]) {
-        finalBoxes[i].subscribers.push(s.id);
-        assignedCount++;
-        break;
-      }
-    }
-  });
-
-  finalBoxes.forEach(b => {
-    b.size_nb = b.subscribers.length;
-    b.pct_subscribers = Number(((b.size_nb / subs.length) * 100).toFixed(1));
-  });
-
-  const t1 = performance.now();
-  const coveragePct = (assignedCount / subs.length) * 100;
+  const totalAssigned = finalBoxes.reduce((acc, b) => acc + b.size_nb, 0);
+  const coveragePct = (totalAssigned / subs.length) * 100;
   const isOptimal = (coveragePct >= payload.min_coverage_pct) && (finalBoxes.length >= payload.tau_l);
 
+  let status = 'Optimal';
+  if (!isOptimal) {
+    if (finalBoxes.length < payload.tau_l) {
+      status = `Infeasible (Only ${finalBoxes.length} boxes meet sigma_l >= ${sigma_l}, requires tau_l >= ${payload.tau_l})`;
+    } else {
+      status = `Infeasible (Coverage ${coveragePct.toFixed(0)}% < target ${payload.min_coverage_pct}%)`;
+    }
+  }
+
+  const t1 = performance.now();
   return {
-    status: isOptimal ? 'Optimal' : (finalBoxes.length < payload.tau_l ? 'Infeasible (Recipes < tau_l)' : 'Infeasible (Coverage Target Unmet)'),
-    solve_time_seconds: Number(Math.max(0.012, (t1 - t0) / 1000).toFixed(3)),
-    subscribers_served: assignedCount,
+    status,
+    solve_time_seconds: Number(Math.max(0.008, (t1 - t0) / 1000).toFixed(3)),
+    subscribers_served: totalAssigned,
     total_subscribers: subs.length,
     boxes_built: finalBoxes.length,
-    total_shortage: subs.length - assignedCount,
+    total_shortage: subs.length - totalAssigned,
     boxes: finalBoxes
   };
 }
