@@ -9,7 +9,7 @@ This repository implements the mathematical models and algorithms described in t
 
 ---
 
-## 📌 Problem Summary
+## Problem Summary
 
 Each month, Birchbox delivers personalized beauty boxes containing $5$ to $6$ product samples to hundreds of thousands of subscribers (clustered into $1{,}000$ to $5{,}000$ subscriber segments). 
 
@@ -27,7 +27,7 @@ The goal is to determine an assortment of distinct box configurations that:
 
 ---
 
-## 📁 Repository Structure
+##  Repository Structure
 
 ```
 birchbox_assortment/
@@ -59,7 +59,7 @@ birchbox_assortment/
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Installation
 
